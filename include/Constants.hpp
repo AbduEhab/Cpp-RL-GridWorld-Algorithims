@@ -34,6 +34,12 @@
 #include "Profiling/Instrumentor.hpp"
 #include "Profiling/Timer.hpp"
 
+constexpr float FPS = 60;
+constexpr inline float FRAME_TIME_TARGET = (1000.0f / FPS);
+
+using Clock = std::chrono::high_resolution_clock;
+using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
+
 // define DEBUG macros here
 #ifdef DEBUG
 
@@ -113,6 +119,7 @@ void print_by_force(First arg, [[maybe_unused]] const Strings &...rest)
     if constexpr (sizeof...(rest) > 0) [[likely]]
     {
         print_by_force(rest...);
+        return;
     }
 }
 
@@ -134,11 +141,13 @@ void async_print_by_force(const First arg, const Strings &...rest)
 
 #ifdef DEBUG
 
+#define debug_print(x) print_by_force(x, "");
 #define debug_print(x, y) \
     print_by_force(x, y); \
     std::cout << std::endl;
-#define debug_async_print(x, y) async_print_by_force(x, y)
+#define debug_async_print(x, y) async_print_by_force(x, y);
 #else
+#define debug_print(x)
 #define debug_print(x, y)
 #define debug_async_print(x, y)
 

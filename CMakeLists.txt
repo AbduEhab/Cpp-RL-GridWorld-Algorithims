@@ -104,7 +104,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 # <-- SDL OPTIONS -->
 set(USE_SDL2 ON)
-set(USE_SDL_IMAGE OFF)
+set(USE_SDL_IMAGE ON)
 set(USE_SDL_MIXER OFF)
 set(USE_SDL_TTF OFF)
 set(USE_SDL_NET OFF)
@@ -262,6 +262,10 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC external/sdl_image
 )
 
+add_subdirectory(
+    external/glm
+)
+
 # <------------------------------------------------>
 
 # <-- Add directory of external libs to link here: -->
@@ -274,6 +278,7 @@ target_link_directories(${PROJECT_NAME}
 # <-- Link needed Libs: -->
 target_link_libraries(${PROJECT_NAME}
     PRIVATE project_options project_warnings
+    PUBLIC glm
 )
 
 # <----------------------->
