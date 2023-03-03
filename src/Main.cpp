@@ -12,7 +12,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *arg[])
 
     Game game = Game();
 
-    game.init(800, 600);
+    game.init(770, 580);
 
     Engine::ticks_last_frame = Clock::now();
 

@@ -38,7 +38,7 @@ struct [[nodiscard]] Entity
     }
 
     template <typename T>
-    [[nodiscard]] constexpr T *get_component()
+    [[nodiscard]] auto constexpr get_component() -> T *
     {
         return static_cast<T *>(components_by_types[&typeid(T)]);
     }

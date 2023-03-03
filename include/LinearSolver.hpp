@@ -53,54 +53,106 @@ auto gauss_solve3x3(glm::mat3 &m, glm::vec3 &v) -> void
     }
 }
 
-auto gauss_solve(std::vector<std::vector<float>> &mat, std::vector<float> &vec) -> void
+// gauss_solve4x4
+auto gauss_solve4x4(glm::mat4 &m, glm::vec4 &v) -> void
 {
-    const size_t n = mat.size();
-
     // forward elimination
-    for (size_t i = 0; i < n; i++)
+    for (size_t i = 0; i < 4; i++)
     {
         // find the row with the largest pivot
         size_t max_row = i;
-        for (size_t j = i + 1; j < n; j++)
+        for (size_t j = i + 1; j < 4; j++)
         {
-            if (std::abs(mat[j][i]) > std::abs(mat[max_row][i]))
+            if (std::abs(m[j][i]) > std::abs(m[max_row][i]))
             {
                 max_row = j;
             }
         }
 
         // swap the rows
-        std::swap(mat[i], mat[max_row]);
-        std::swap(vec[i], vec[max_row]);
+        std::swap(m[i], m[max_row]);
+        std::swap(v[i], v[max_row]);
 
         // eliminate the column
-        for (size_t j = i + 1; j < n; j++)
+        for (size_t j = i + 1; j < 4; j++)
         {
-            float f = mat[j][i] / mat[i][i];
-            for (size_t k = i + 1; k < n; k++)
+            float f = m[j][i] / m[i][i];
+            for (size_t k = i + 1; k < 4; k++)
             {
-                mat[j][k] -= mat[i][k] * f;
+                m[j][k] -= m[i][k] * f;
             }
-            vec[j] -= vec[i] * f;
+            v[j] -= v[i] * f;
         }
     }
 
     // back substitution
-    for (int i = n - 1; i >= 0; i--)
+    for (size_t i = 4 - 1; i > 0; i--)
     {
-        for (int j = i - 1; j >= 0; j--)
+        for (size_t j = i - 1; j > 0; j--)
         {
-            float f = mat[j][i] / mat[i][i];
-            mat[j][i] -= mat[i][i] * f;
-            vec[j] -= vec[i] * f;
+            float f = m[j][i] / m[i][i];
+            m[j][i] -= m[i][i] * f;
+            v[j] -= v[i] * f;
         }
     }
 
     // normalize the diagonal
-    for (size_t i = 0; i < n; i++)
+    for (size_t i = 0; i < 4; i++)
     {
-        vec[i] /= mat[i][i];
-        mat[i][i] /= mat[i][i];
+        v[i] /= m[i][i];
+        m[i][i] /= m[i][i];
+    }
+}
+
+auto gauss_solve(float *matrix, float *vector, size_t mat_size)
+{
+    // forward elimination
+    for (size_t i = 0; i < mat_size; i++)
+    {
+        // find the row with the largest pivot
+        size_t max_row = i;
+        for (size_t j = i + 1; j < mat_size; j++)
+        {
+            if (std::abs(matrix[j * mat_size + i]) > std::abs(matrix[max_row * mat_size + i]))
+            {
+                max_row = j;
+            }
+        }
+
+        // swap the rows
+        for (size_t k = 0; k < mat_size; k++)
+        {
+            std::swap(matrix[i * mat_size + k], matrix[max_row * mat_size + k]);
+        }
+        std::swap(vector[i], vector[max_row]);
+
+        // eliminate the column
+        for (size_t j = i + 1; j < mat_size; j++)
+        {
+            float f = matrix[j * mat_size + i] / matrix[i * mat_size + i];
+            for (size_t k = i + 1; k < mat_size; k++)
+            {
+                matrix[j * mat_size + k] -= matrix[i * mat_size + k] * f;
+            }
+            vector[j] -= vector[i] * f;
+        }
+    }
+
+    // back substitution
+    for (size_t i = mat_size - 1; i > 0; i--)
+    {
+        for (size_t j = i - 1; j > 0; j--)
+        {
+            float f = matrix[j * mat_size + i] / matrix[i * mat_size + i];
+            matrix[j * mat_size + i] -= matrix[i * mat_size + i] * f;
+            vector[j] -= vector[i] * f;
+        }
+    }
+
+    // normalize the diagonal
+    for (size_t i = 0; i < mat_size; i++)
+    {
+        vector[i] /= matrix[i * mat_size + i];
+        matrix[i * mat_size + i] /= matrix[i * mat_size + i];
     }
 }

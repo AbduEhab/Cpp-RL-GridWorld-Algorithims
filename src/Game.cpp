@@ -2,9 +2,9 @@
 
 #include <Components/SpriteComponent.hpp>
 #include <Components/TransformComponent.hpp>
+#include <Engine.hpp>
 #include <Game.hpp>
 #include <RLManager.hpp>
-#include <Engine.hpp>
 
 EntityManager manager;
 AssetManager *Game::asset_manager = new AssetManager(manager);
@@ -56,10 +56,15 @@ void Game::load_level([[maybe_unused]] int level_number) const
     asset_manager->add_texture("up", "../assets/sprites/up.png");
     asset_manager->add_texture("wall", "../assets/sprites/wall.png");
 
+    std::string_view level;
+
     switch (level_number)
     {
     case 0:
-        rl_manager = new RLManager(manager, 10, 10);
+        level = "0 0 0 g 0 w 0 t s 0 0 0";
+
+        rl_manager = new RLManager(manager, 4, 3, level);
+        rl_manager->MDP_state_value_function();
         break;
 
     default:

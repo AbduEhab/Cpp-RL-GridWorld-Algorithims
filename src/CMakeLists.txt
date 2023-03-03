@@ -129,6 +129,11 @@ else()
     endif()
 endif()
 
+message(STATUS "$<$<CONFIG:Release>:reslease>         "   )
+message(STATUS "$<$<CONFIG:RelWithDebInfo>:relWithDeb>")
+message(STATUS "$<$<CONFIG:Debug>:DEBUG_MODE>         "   )
+message(STATUS "$<$<CONFIG:Debug>:DEBUG_MODE>         ")
+
 # Link assets needed for the binary to run
 
 # add_custom_command(
