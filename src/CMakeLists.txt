@@ -60,27 +60,27 @@ else()
         add_custom_command(
             TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/external/SDL/$<CONFIG>/SDL2.dll
-            ${CMAKE_SOURCE_DIR}/bin/${CMAKE_GENERATOR_PLATFORM}/SDL2.dll)
+            ${CMAKE_BINARY_DIR}/external/SDL/$<CONFIG>/SDL2$<$<CONFIG:Debug>:d>.dll
+            ${CMAKE_SOURCE_DIR}/bin/${CMAKE_GENERATOR_PLATFORM}/SDL2$<$<CONFIG:Debug>:d>.dll)
 
         add_custom_command(
             TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/external/SDL/$<CONFIG>/SDL2.dll
-            $<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL2.dll)
+            ${CMAKE_BINARY_DIR}/external/SDL/$<CONFIG>/SDL2$<$<CONFIG:Debug>:d>.dll
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL2$<$<CONFIG:Debug>:d>.dll)
 
         if(USE_SDL_IMAGE)
             add_custom_command(
                 TARGET ${PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy
-                ${CMAKE_BINARY_DIR}/external/sdl_image/$<CONFIG>/SDL2_image.dll
-                ${CMAKE_SOURCE_DIR}/bin/${CMAKE_GENERATOR_PLATFORM}/SDL2_image.dll)
+                ${CMAKE_BINARY_DIR}/external/sdl_image/$<CONFIG>/SDL2_image$<$<CONFIG:Debug>:d>.dll
+                ${CMAKE_SOURCE_DIR}/bin/${CMAKE_GENERATOR_PLATFORM}/SDL2_image$<$<CONFIG:Debug>:d>.dll)
 
             add_custom_command(
                 TARGET ${PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy
-                ${CMAKE_BINARY_DIR}/external/sdl_image/$<CONFIG>/SDL2_image.dll
-                $<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL2_image.dll)
+                ${CMAKE_BINARY_DIR}/external/sdl_image/$<CONFIG>/SDL2_image$<$<CONFIG:Debug>:d>.dll
+                $<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL2_image$<$<CONFIG:Debug>:d>.dll)
         endif()
 
         if(USE_SDL_MIXER)
@@ -101,13 +101,13 @@ else()
             add_custom_command(
                 TARGET ${PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy
-                ${CMAKE_BINARY_DIR}/external/SDL_ttf/$<CONFIG>/SDL2_ttf.dll
+                ${CMAKE_BINARY_DIR}/external/SDL_ttf/$<CONFIG>/SDL2_ttf$<$<CONFIG:Debug>:d>.dll
                 ${CMAKE_SOURCE_DIR}/bin/${CMAKE_GENERATOR_PLATFORM}/SDL2_ttf.dll)
 
             add_custom_command(
                 TARGET ${PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy
-                ${CMAKE_BINARY_DIR}/external/SDL_ttf/$<CONFIG>/SDL2_ttf.dll
+                ${CMAKE_BINARY_DIR}/external/SDL_ttf/$<CONFIG>/SDL2_ttf$<$<CONFIG:Debug>:d>.dll
                 $<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL2_ttf.dll)
         endif()
 

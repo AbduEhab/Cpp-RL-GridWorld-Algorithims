@@ -106,7 +106,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 set(USE_SDL2 ON)
 set(USE_SDL_IMAGE ON)
 set(USE_SDL_MIXER OFF)
-set(USE_SDL_TTF OFF)
+set(USE_SDL_TTF ON)
 set(USE_SDL_NET OFF)
 
 # Add locations of other CMakelists.txt (one per call)

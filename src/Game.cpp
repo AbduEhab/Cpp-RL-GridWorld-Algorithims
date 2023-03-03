@@ -61,9 +61,9 @@ void Game::load_level([[maybe_unused]] int level_number) const
     switch (level_number)
     {
     case 0:
-        level = "0 0 0 g 0 w 0 t s 0 0 0";
+        level = "0 g 0";
 
-        rl_manager = new RLManager(manager, 4, 3, level);
+        rl_manager = new RLManager(manager, 2, 2, level);
         rl_manager->MDP_state_value_function();
         break;
 

@@ -39,7 +39,7 @@ struct RLComponent : public Component
 
     CELL_TYPE::CELL_TYPE type = CELL_TYPE::BLANK;
 
-    uint8_t probability[4] = {0, 0, 0, 0}; // 0: up, 1: right, 2: down, 3: left
+    float probability[4] = {0, 0, 0, 0}; // 0: up, 1: right, 2: down, 3: left
 
     uint8_t policy[4] = {0, 0, 0, 0}; // 0: up, 1: right, 2: down, 3: left
 
