@@ -1,4 +1,4 @@
-#include "EntityManager.h"
+#include "EntityManager.hpp"
 
 void EntityManager::render() const
 {

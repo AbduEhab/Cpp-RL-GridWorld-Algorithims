@@ -1,4 +1,4 @@
-#include "Entity.h"
+#include "Entity.hpp"
 
 Entity::Entity(EntityManager &manager) : manager(manager)
 {
@@ -57,3 +57,4 @@ std::string Entity::to_string()
 
     return s + "}";
 }
+

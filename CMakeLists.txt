@@ -253,6 +253,7 @@ if(USE_SDL_NET)
     target_link_libraries(${PROJECT_NAME} PRIVATE SDL2_net)
 endif()
 
+
 # <-- Add directories to include directory here: -->
 target_include_directories(${PROJECT_NAME}
     PUBLIC src

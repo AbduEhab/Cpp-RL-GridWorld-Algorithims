@@ -1,10 +1,14 @@
 #define SDL_MAIN_HANDLED
 
-#include "Engine.h"
-#include "Game.h"
+#include "Engine.hpp"
+#include "Game.hpp"
 
-int main(int argc, char *arg[])
+
+int main([[maybe_unused]] int argc, [[maybe_unused]] char *arg[])
 {
+
+    // print out the current working directory
+    std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
 
     Game game = Game();
 

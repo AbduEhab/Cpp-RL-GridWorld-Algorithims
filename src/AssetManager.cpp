@@ -1,6 +1,6 @@
-#include "AssetManager.h"
+#include "AssetManager.hpp"
 
-AssetManager::AssetManager(EntityManager *manager) : manager(manager)
+AssetManager::AssetManager(EntityManager &manager) : manager(manager)
 {
 }
 

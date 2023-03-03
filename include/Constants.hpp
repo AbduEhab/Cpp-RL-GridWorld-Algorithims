@@ -139,29 +139,35 @@ void async_print_by_force(const First arg, const Strings &...rest)
     t.detach();
 }
 
+template <typename First, typename... Strings>
+void debug_print(First arg, [[maybe_unused]] const Strings &...rest)
+{
+
 #ifdef DEBUG
-
-#define debug_print(x) print_by_force(x, "");
-#define debug_print(x, y) \
-    print_by_force(x, y); \
+    print_by_force(arg, rest...);
     std::cout << std::endl;
-#define debug_async_print(x, y) async_print_by_force(x, y);
-#else
-#define debug_print(x)
-#define debug_print(x, y)
-#define debug_async_print(x, y)
-
 #endif
 
-/**
- * @brief Checks if the given class is of type Base
- *
- * @tparam Base base class
- * @tparam T subclass to check
- * @param T
- */
-template <typename Base, typename T>
-inline constexpr int instanceof (const T *)
-{
-    return std::is_base_of<Base, T>::value;
 }
+
+template <typename First, typename... Strings>
+void debug_async_print(const First arg, const Strings &...rest)
+{
+#ifdef DEBUG
+    async_print_by_force(arg, rest...);
+#endif
+}
+
+
+    /**
+     * @brief Checks if the given class is of type Base
+     *
+     * @tparam Base base class
+     * @tparam T subclass to check
+     * @param T
+     */
+    template <typename Base, typename T>
+    inline constexpr int instanceof (const T *)
+    {
+        return std::is_base_of<Base, T>::value;
+    }

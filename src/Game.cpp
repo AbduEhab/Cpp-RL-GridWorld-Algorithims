@@ -1,15 +1,17 @@
 #include <iostream>
 
-#include <Components/SpriteComponent.h>
-#include <Components/TransformComponent.h>
-#include <Game.h>
-#include <GridWorld.hpp>
+#include <Components/SpriteComponent.hpp>
+#include <Components/TransformComponent.hpp>
+#include <Game.hpp>
+#include <RLManager.hpp>
+#include <Engine.hpp>
 
 EntityManager manager;
-AssetManager *Game::asset_manager = new AssetManager(&manager);
+AssetManager *Game::asset_manager = new AssetManager(manager);
 SDL_Renderer *Game::renderer;
+RLManager *rl_manager;
 
-[[NODISCARD]] bool Game::is_running() const
+[[nodiscard]] bool Game::is_running() const
 {
     return running;
 }
@@ -57,12 +59,15 @@ void Game::load_level([[maybe_unused]] int level_number) const
     switch (level_number)
     {
     case 0:
+        rl_manager = new RLManager(manager, 10, 10);
+        break;
+
+    default:
         Entity &block(manager.add_entity("block_1"));
-        block.add_component<TransformComponent>(30, 30, 0, 0, 20, 20, 1);
+        block.add_component<TransformComponent>(30, 30, 60, 60, 20, 20, 1);
         block.add_component<SpriteComponent>("goal");
         break;
     }
-
 }
 
 void Game::process_input()
@@ -82,6 +87,14 @@ void Game::process_input()
         if (event.key.keysym.sym) // if this key is the Esc key
             running = false;
         break;
+    case SDL_WINDOWEVENT:
+        if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+        {
+            Engine::width = event.window.data1;
+            Engine::height = event.window.data2;
+            debug_print("Window resized to: ", Engine::width, "x", Engine::height);
+        }
+        break;
     }
 }
 
@@ -89,14 +102,17 @@ TimePoint time_s = Clock::now();
 
 void Game::update(float delta_time)
 {
+
     manager.update(delta_time);
+
+    rl_manager->update(delta_time);
 
     bool res = std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - time_s).count() >= FRAME_TIME_TARGET;
 
     if (res) [[unlikely]]
     {
         SDL_SetWindowTitle(window, (std::to_string(1 / delta_time).append(" | ").append(std::to_string(delta_time))).append(" | ").append(std::to_string(SDL_GetTicks64())).c_str());
-        debug_print("Game Update: ", manager.get_entities()[0]->get_component<TransformComponent>()->to_string());
+        // debug_print("Game Update: ", manager.get_entities()[0]->get_component<TransformComponent>()->to_string());
         time_s = Clock::now();
     }
 }
