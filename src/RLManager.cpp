@@ -36,8 +36,8 @@ RLManager::RLManager(EntityManager &manager, size_t width, size_t height, std::s
         matrix[i] = 0;
     }
 
-    vector = new float[std::sqrt(std::pow(width * height - 1, 2))];
-    for (size_t i = 0; i < std::sqrt(std::pow(width * height - 1, 2)); i++)
+    vector = new float[width * height - 1];
+    for (size_t i = 0; i < width * height - 1; i++)
     {
         vector[i] = 0;
     }
@@ -143,7 +143,7 @@ auto RLManager::get_cell(size_t x, size_t y) -> Entity *
 auto RLManager::populate_LS_system(int x, int y, RLComponent *const (&comp)[4], Entity *const (&neighbors)[4], POLICY::POLICY goal) -> void
 {
 
-    int mat_size = (std::sqrt(std::pow(width * height - 1, 2)));
+    int mat_size = width * height - 1;
 
     if (grid[x * width + y]->get_component<RLComponent>()->type == CELL_TYPE::GOAL) [[unlikley]]
     {
@@ -338,7 +338,7 @@ auto RLManager::MDP_state_value_function() -> void
     }
 
     // print vector
-    for (size_t y = 0; y < std::sqrt(std::pow(width * height - 1, 2)); y++)
+    for (size_t y = 0; y < width * height - 1; y++)
     {
         std::cout << y << ": " << vector[y] << " " << std::endl;
     }
@@ -347,7 +347,7 @@ auto RLManager::MDP_state_value_function() -> void
     gauss_solve(matrix, vector, std::pow((width * height) - 1, 2));
 
     // print vector
-    for (size_t y = 0; y < std::sqrt(std::pow(width * height - 1, 2)); y++)
+    for (size_t y = 0; y < width * height - 1; y++)
     {
         std::cout << y << ": " << vector[y] << " " << std::endl;
     }
