@@ -21,17 +21,25 @@ struct RLManager
     float discount = 0.9f;
 
 private:
-    auto populate_LS_system(int x, int y, RLComponent *const (&comp)[4], Entity *const (&neigbors)[4], POLICY::POLICY goal) -> void;
+    auto populate_LS_system(Entity *curr_entity, RLComponent *const (&comp)[4], Entity *const (&neigbors)[4]) -> void;
     auto MDP_check_action_validity(POLICY::POLICY action, int x, int y) -> const bool;
     auto MDP_are_any_goals_reachable(Entity *const (&entities)[4]) -> const POLICY::POLICY;
+    auto inverse_matrix(float *matrix) -> bool;
+    auto solve() -> void;
 
     auto get_neighbor(POLICY::POLICY action, int x, int y) -> Entity *;
+
+    int num_states = 0;
 
     // create matrix with the values
     float *matrix;
 
+    int matrix_size;
+
     // create vec;
     float *vector;
+
+    int vector_size;
 
     EntityManager &manager;
     size_t width, height;

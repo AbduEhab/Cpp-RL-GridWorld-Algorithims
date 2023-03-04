@@ -39,12 +39,14 @@ struct RLComponent : public Component
 
     CELL_TYPE::CELL_TYPE type = CELL_TYPE::BLANK;
 
+    int state_number;
+
     float probability[4] = {0, 0, 0, 0}; // 0: up, 1: right, 2: down, 3: left
 
     uint8_t policy[4] = {0, 0, 0, 0}; // 0: up, 1: right, 2: down, 3: left
 
-    RLComponent(int reward, CELL_TYPE::CELL_TYPE type = CELL_TYPE::BLANK, float up = 0.25, float right = 0.25, float down = 0.25, float left = 0.25, POLICY::POLICY policy = POLICY::UP)
-        : reward(reward), type(type)
+    RLComponent(int state_number, int reward, CELL_TYPE::CELL_TYPE type = CELL_TYPE::BLANK, float up = 0.25, float right = 0.25, float down = 0.25, float left = 0.25, POLICY::POLICY policy = POLICY::UP)
+        : state_number(state_number), reward(reward), type(type)
     {
         probability[0] = up;
         probability[1] = right;

@@ -9,7 +9,6 @@
 RLManager::RLManager(EntityManager &manager, size_t width, size_t height, std::string_view &level)
     : manager(manager), width(width), height(height)
 {
-
     auto entity_opt = new char[width * height];
 
     {
@@ -28,19 +27,6 @@ RLManager::RLManager(EntityManager &manager, size_t width, size_t height, std::s
     }
 
     grid = new Entity *[width * height];
-
-    matrix = new float[std::pow((width * height) - 1, 2)];
-    std::cout << std::pow((width * height) - 1, 2) << std::endl;
-    for (size_t i = 0; i < std::pow((width * height) - 1, 2); i++)
-    {
-        matrix[i] = 0;
-    }
-
-    vector = new float[width * height - 1];
-    for (size_t i = 0; i < width * height - 1; i++)
-    {
-        vector[i] = 0;
-    }
 
     // scale bloack size to fit screen
     size_t block_size = std::min(Engine::width / width, Engine::height / height);
@@ -89,10 +75,26 @@ RLManager::RLManager(EntityManager &manager, size_t width, size_t height, std::s
 
             block.add_component<TransformComponent>(x * 32, y * 32, 0, 0, 32, 32, block_size / 32);
             block.add_component<SpriteComponent>(texture_id);
-            block.add_component<RLComponent>(reward, type);
+            block.add_component<RLComponent>(type == CELL_TYPE::GOAL || type == CELL_TYPE::WALL || type == CELL_TYPE::NONO ? num_states : num_states++, reward, type);
 
             grid[y * width + x] = &block;
         }
+    }
+
+    matrix_size = (int)std::pow(num_states, 2);
+    vector_size = num_states;
+
+    matrix = new float[matrix_size];
+    std::cout << matrix_size << std::endl;
+    for (size_t i = 0; i < matrix_size; i++)
+    {
+        matrix[i] = 0;
+    }
+
+    vector = new float[vector_size];
+    for (size_t i = 0; i < vector_size; i++)
+    {
+        vector[i] = 0;
     }
 }
 
@@ -140,134 +142,36 @@ auto RLManager::get_cell(size_t x, size_t y) -> Entity *
     return grid[x * width + y];
 }
 
-auto RLManager::populate_LS_system(int x, int y, RLComponent *const (&comp)[4], Entity *const (&neighbors)[4], POLICY::POLICY goal) -> void
+auto RLManager::populate_LS_system(Entity *curr_entity, RLComponent *const (&comp)[4], Entity *const (&neighbors)[4]) -> void
 {
+    auto curr_component = curr_entity->get_component<RLComponent>();
+    auto curr_state_state_number = curr_component->state_number;
 
-    int mat_size = width * height - 1;
-
-    if (grid[x * width + y]->get_component<RLComponent>()->type == CELL_TYPE::GOAL) [[unlikley]]
+    if (curr_component->type == CELL_TYPE::GOAL || curr_component->type == CELL_TYPE::WALL || curr_component->type == CELL_TYPE::NONO) [[unlikley]]
     {
         return;
     }
 
-    // top left corner
-    if (neighbors[0] == nullptr && neighbors[3] == nullptr) [[unlikley]]
+    float curr_element_value = 0;
+
+    for (int i = 0; i < 4; i++)
     {
-
-        matrix[x * mat_size + y] += 1 - (0.5 * discount);
-
-        if (neighbors[1] != nullptr)
+        if (neighbors[i] == nullptr)
+            curr_element_value -= -(curr_component->probability[i] * discount);
+        else
         {
-            if (goal == POLICY::RIGHT)
-                vector[x * mat_size + y] += comp[1]->reward * comp[1]->probability[1];
+            auto neighbor_component = neighbors[i]->get_component<RLComponent>();
+            auto neighbor_state_number = neighbor_component->state_number;
+            auto neighbor_type = neighbor_component->type;
 
-            matrix[x * mat_size + (y + 1)] += -(0.25 * discount);
-        }
-        if (neighbors[2] != nullptr)
-        {
-            if (goal == POLICY::DOWN)
-                vector[x * mat_size + y] += comp[2]->reward * comp[2]->probability[2];
-
-            matrix[(x + 1) * mat_size + y] += -(0.25 * discount);
+            if (neighbor_type == CELL_TYPE::GOAL || neighbor_type == CELL_TYPE::NONO)
+                vector[curr_state_state_number] += comp[i]->reward * comp[i]->probability[i];
+            else
+                matrix[curr_state_state_number * vector_size + neighbor_state_number] += -(0.25 * discount);
         }
     }
-    // top right corner
-    else if (neighbors[0] == nullptr && neighbors[1] == nullptr) [[unlikley]]
-    {
 
-        matrix[x * mat_size + y] += 1 - (0.5 * discount);
-
-        if (neighbors[2] != nullptr)
-        {
-            if (goal == POLICY::DOWN)
-                vector[x * mat_size + y] += comp[2]->reward * comp[2]->probability[2];
-
-            matrix[(x + 1) * mat_size + y] += -(0.25 * discount);
-        }
-        if (neighbors[3] != nullptr)
-        {
-            if (goal == POLICY::LEFT)
-                vector[x * mat_size + y] += comp[3]->reward * comp[3]->probability[3];
-
-            matrix[x * mat_size + (y - 1)] += -(0.25 * discount);
-        }
-    }
-    // bottom right corner
-    else if (neighbors[1] == nullptr && neighbors[2] == nullptr) [[unlikley]]
-    {
-
-        matrix[x * mat_size + y] += 1 - (0.5 * discount);
-
-        if (neighbors[3] != nullptr)
-        {
-            if (goal == POLICY::LEFT)
-                vector[x * mat_size + y] += comp[3]->reward * comp[3]->probability[3];
-
-            matrix[x * mat_size + (y - 1)] += -(0.25 * discount);
-        }
-        if (neighbors[0] != nullptr)
-        {
-            if (goal == POLICY::UP)
-                vector[x * mat_size + y] += comp[0]->reward * comp[0]->probability[0];
-
-            matrix[(x - 1) * mat_size + y] += -(0.25 * discount);
-        }
-    }
-    // bottom left corner
-    else if (neighbors[2] == nullptr && neighbors[3] == nullptr) [[unlikley]]
-    {
-
-        matrix[x * mat_size + y] += 1 - (0.5 * discount);
-
-        if (neighbors[0] != nullptr)
-        {
-            if (goal == POLICY::UP)
-                vector[x * mat_size + y] += comp[0]->reward * comp[0]->probability[0];
-
-            matrix[(x - 1) * mat_size + y] += -(0.25 * discount);
-        }
-        if (neighbors[1] != nullptr)
-        {
-            if (goal == POLICY::RIGHT)
-                vector[x * mat_size + y] += comp[1]->reward * comp[1]->probability[1];
-
-            matrix[x * mat_size + (y + 1)] += -(0.25 * discount);
-        }
-    }
-    // if not edge
-    else
-    {
-        matrix[x * mat_size + y] += 1 - (0.25 * discount);
-
-        if (neighbors[0] != nullptr)
-        {
-            if (goal == POLICY::UP)
-                vector[x * mat_size + y] += comp[0]->reward * comp[0]->probability[0];
-
-            matrix[(x - 1) * mat_size + y] += -(0.25 * discount);
-        }
-        if (neighbors[1] != nullptr)
-        {
-            if (goal == POLICY::RIGHT)
-                vector[x * mat_size + y] += comp[1]->reward * comp[1]->probability[1];
-
-            matrix[x * mat_size + (y + 1)] += -(0.25 * discount);
-        }
-        if (neighbors[2] != nullptr)
-        {
-            if (goal == POLICY::DOWN)
-                vector[x * mat_size + y] += comp[2]->reward * comp[2]->probability[2];
-
-            matrix[(x + 1) * mat_size + y] += -(0.25 * discount);
-        }
-        if (neighbors[3] != nullptr)
-        {
-            if (goal == POLICY::LEFT)
-                vector[x * mat_size + y] += comp[3]->reward * comp[3]->probability[3];
-
-            matrix[x * mat_size + (y - 1)] += -(0.25 * discount);
-        }
-    }
+    matrix[curr_state_state_number * vector_size + curr_state_state_number] += 1 - curr_element_value;
 }
 
 auto RLManager::MDP_state_value_function() -> void
@@ -323,52 +227,60 @@ auto RLManager::MDP_state_value_function() -> void
             Entity *const entity_array[4] = {up, right, down, left};
             RLComponent *entity_comp_array[4] = {up_comp, right_comp, down_comp, left_comp};
 
-            auto goal = MDP_are_any_goals_reachable(entity_array);
+            auto proxy_entity = grid[width * x + y];
 
             // populate matrix and vector
-            populate_LS_system(x, y, entity_comp_array, entity_array, goal);
+            populate_LS_system(proxy_entity, entity_comp_array, entity_array);
         }
     }
 
     // print matrix
-    for (size_t y = 0; y < std::pow((width * height) - 1, 2); y++)
+    for (size_t y = 0; y < matrix_size; y++)
     {
         std::cout << matrix[y] << " ";
         std::cout << std::endl;
     }
 
     // print vector
-    for (size_t y = 0; y < width * height - 1; y++)
+    for (size_t y = 0; y < vector_size; y++)
     {
         std::cout << y << ": " << vector[y] << " " << std::endl;
     }
 
     // solve LS system
-    gauss_solve(matrix, vector, std::pow((width * height) - 1, 2));
+    // gauss_solve(matrix, vector, matrix_size);
 
     // print vector
-    for (size_t y = 0; y < width * height - 1; y++)
+    for (size_t y = 0; y < vector_size; y++)
     {
         std::cout << y << ": " << vector[y] << " " << std::endl;
     }
 }
 
+auto inverse_matrix(float *matrix) -> bool
+{
+    // calculate the inverse of the matrix
+    
+    return true;
+}
+auto solve() -> void;
+
 auto RLManager::MDP_action_value_function() -> void
 {
 
-    if (width <= 1 && height <= 1)
-        return;
+    // if (width <= 1 && height <= 1)
+    //     return;
 
-    for (size_t x = 0; x < height; x++)
-    {
-        for (size_t y = 0; y < width; y++)
-        {
-            auto is_up_possible = MDP_check_action_validity(POLICY::UP, x, y);
-            auto is_right_possible = MDP_check_action_validity(POLICY::RIGHT, x, y);
-            auto is_down_possible = MDP_check_action_validity(POLICY::DOWN, x, y);
-            auto is_left_possible = MDP_check_action_validity(POLICY::LEFT, x, y);
-        }
-    }
+    // for (size_t x = 0; x < height; x++)
+    // {
+    //     for (size_t y = 0; y < width; y++)
+    //     {
+    //         auto is_up_possible = MDP_check_action_validity(POLICY::UP, x, y);
+    //         auto is_right_possible = MDP_check_action_validity(POLICY::RIGHT, x, y);
+    //         auto is_down_possible = MDP_check_action_validity(POLICY::DOWN, x, y);
+    //         auto is_left_possible = MDP_check_action_validity(POLICY::LEFT, x, y);
+    //     }
+    // }
 }
 
 auto RLManager::get_neighbor(POLICY::POLICY action, int x, int y) -> Entity *

@@ -102,13 +102,13 @@ else()
                 TARGET ${PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy
                 ${CMAKE_BINARY_DIR}/external/SDL_ttf/$<CONFIG>/SDL2_ttf$<$<CONFIG:Debug>:d>.dll
-                ${CMAKE_SOURCE_DIR}/bin/${CMAKE_GENERATOR_PLATFORM}/SDL2_ttf.dll)
+                ${CMAKE_SOURCE_DIR}/bin/${CMAKE_GENERATOR_PLATFORM}/SDL2_ttf$<$<CONFIG:Debug>:d>.dll)
 
             add_custom_command(
                 TARGET ${PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy
                 ${CMAKE_BINARY_DIR}/external/SDL_ttf/$<CONFIG>/SDL2_ttf$<$<CONFIG:Debug>:d>.dll
-                $<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL2_ttf.dll)
+                $<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL2_ttf$<$<CONFIG:Debug>:d>.dll)
         endif()
 
         if(USE_SDL_NET)
