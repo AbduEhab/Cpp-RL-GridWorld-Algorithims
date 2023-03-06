@@ -4,12 +4,12 @@
 #include <Components/TransformComponent.hpp>
 #include <Engine.hpp>
 #include <Game.hpp>
-#include <RLManager.hpp>
+#include <RLManager.tpp>
 
 EntityManager manager;
 AssetManager *Game::asset_manager = new AssetManager(manager);
 SDL_Renderer *Game::renderer;
-RLManager *rl_manager;
+RLManager<float,2,2> *rl_manager;
 
 [[nodiscard]] bool Game::is_running() const
 {
@@ -63,7 +63,7 @@ void Game::load_level([[maybe_unused]] int level_number) const
     case 0:
         level = "0 g 0 0";
 
-        rl_manager = new RLManager(manager, 2, 2, level);
+        rl_manager = new RLManager<float, 2, 2>(manager, level);
         rl_manager->MDP_state_value_function();
         break;
 
