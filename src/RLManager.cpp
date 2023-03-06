@@ -6,8 +6,7 @@
 
 #include <Engine.hpp>
 
-template <typename T, unsigned int width, unsigned int height>
-RLManager<T, width, height>::RLManager(EntityManager &manager, std::string_view &level)
+RLManager::RLManager(EntityManager &manager, size_t width, size_t height, std::string_view &level)
     : manager(manager), width(width), height(height)
 {
     auto entity_opt = new char[width * height];
@@ -36,7 +35,7 @@ RLManager<T, width, height>::RLManager(EntityManager &manager, std::string_view 
     {
         for (size_t x = 0; x < width; x++)
         {
-            Entity &block(manager.add_entity(std::string("Cell").append(" (").append(std::to_string(x)).append(", ").append(std::to_string(y)).append(")")));
+            Entity &block(manager.add_entity(std::string("State").append(" (").append(std::to_string(x)).append(", ").append(std::to_string(y)).append(")")));
 
             auto c = entity_opt[y * width + x];
 
@@ -85,44 +84,45 @@ RLManager<T, width, height>::RLManager(EntityManager &manager, std::string_view 
     matrix_size = (int)std::pow(num_states, 2);
     vector_size = num_states;
 
-    std::cout << matrix_size << std::endl;
-
+    matrix = new double[matrix_size];
+    std::cout << "State Matrix Size: " << matrix_size << std::endl;
     for (size_t i = 0; i < matrix_size; i++)
     {
-        for (size_t j = 0; j < matrix_size; j++)
-        {
-            std::cout << matrix.getval(i, j) << " ";
-        }
-        std::cout << std::endl;
+        matrix[i] = 0;
     }
 
-    vector = new float[vector_size];
+    state_vector = new double[vector_size];
     for (size_t i = 0; i < vector_size; i++)
     {
-        vector[i] = 0;
+        state_vector[i] = 0;
+    }
+
+    value_matrix_size = vector_size * 4;
+    value_matrix = new double[value_matrix_size];
+    for (size_t i = 0; i < value_matrix_size; i++)
+    {
+        value_matrix[i] = 0;
     }
 }
 
-template <typename T, unsigned int width, unsigned int height>
-RLManager<T, width, height>::~RLManager()
+RLManager::~RLManager()
 {
     delete[] grid;
-    delete[] vector;
+    delete[] matrix;
+    delete[] state_vector;
 }
-template <typename T, unsigned int width, unsigned int height>
-auto RLManager<T, width, height>::get_width() const -> size_t
+
+auto RLManager::get_width() const -> size_t
 {
     return width;
 }
 
-template <typename T, unsigned int width, unsigned int height>
-auto RLManager<T, width, height>::get_height() const -> size_t
+auto RLManager::get_height() const -> size_t
 {
     return height;
 }
 
-template <typename T, unsigned int width, unsigned int height>
-auto RLManager<T, width, height>::update([[maybe_unused]] float delta_time) -> void
+auto RLManager::update([[maybe_unused]] double delta_time) -> void
 {
     size_t block_size = std::min(Engine::width / (width * 32), Engine::height / (height * 32));
 
@@ -144,14 +144,12 @@ auto RLManager<T, width, height>::update([[maybe_unused]] float delta_time) -> v
     }
 }
 
-template <typename T, unsigned int width, unsigned int height>
-auto RLManager<T, width, height>::get_cell(size_t x, size_t y) -> Entity *
+auto RLManager::get_cell(size_t x, size_t y) -> Entity *
 {
     return grid[x * width + y];
 }
 
-template <typename T, unsigned int width, unsigned int height>
-auto RLManager<T, width, height>::populate_LS_system(Entity *curr_entity, RLComponent *const (&comp)[4], Entity *const (&neighbors)[4]) -> void
+auto RLManager::populate_LS_system(Entity *curr_entity, RLComponent *const (&comp)[4], Entity *const (&neighbors)[4]) -> void
 {
     auto curr_component = curr_entity->get_component<RLComponent>();
     auto curr_state_state_number = curr_component->state_number;
@@ -161,7 +159,7 @@ auto RLManager<T, width, height>::populate_LS_system(Entity *curr_entity, RLComp
         return;
     }
 
-    float curr_element_value = 0;
+    double curr_element_value = 0;
 
     for (int i = 0; i < 4; i++)
     {
@@ -174,7 +172,7 @@ auto RLManager<T, width, height>::populate_LS_system(Entity *curr_entity, RLComp
             auto neighbor_type = neighbor_component->type;
 
             if (neighbor_type == CELL_TYPE::GOAL || neighbor_type == CELL_TYPE::NONO)
-                vector[curr_state_state_number] += comp[i]->reward * comp[i]->probability[i];
+                state_vector[curr_state_state_number] += comp[i]->reward * comp[i]->probability[i];
             else
                 matrix[curr_state_state_number * vector_size + neighbor_state_number] += -(0.25 * discount);
         }
@@ -183,8 +181,7 @@ auto RLManager<T, width, height>::populate_LS_system(Entity *curr_entity, RLComp
     matrix[curr_state_state_number * vector_size + curr_state_state_number] += 1 - curr_element_value;
 }
 
-template <typename T, unsigned int width, unsigned int height>
-auto RLManager<T, width, height>::MDP_state_value_function() -> void
+auto RLManager::MDP_state_value_function(bool print) -> void
 {
     if (width <= 1 && height <= 1)
         return;
@@ -193,8 +190,6 @@ auto RLManager<T, width, height>::MDP_state_value_function() -> void
     {
         for (size_t y = 0; y < width; y++)
         {
-            // MDP_helper_state_value_function(x, y);
-
             auto is_up_possible = MDP_check_action_validity(POLICY::UP, x, y);
             auto is_right_possible = MDP_check_action_validity(POLICY::RIGHT, x, y);
             auto is_down_possible = MDP_check_action_validity(POLICY::DOWN, x, y);
@@ -239,63 +234,127 @@ auto RLManager<T, width, height>::MDP_state_value_function() -> void
 
             auto proxy_entity = grid[width * x + y];
 
-            // populate matrix and vector
+            // populate matrix and state_vector
             populate_LS_system(proxy_entity, entity_comp_array, entity_array);
         }
     }
-
-    // print matrix
-    for (size_t i = 0; i < matrix_size; i++)
-    {
-        for (size_t j = 0; j < matrix_size; j++)
-        {
-            std::cout << matrix.getval(i, j) << " ";
-        }
-        std::cout << std::endl;
-    }
-
-    // print vector
-    for (size_t y = 0; y < vector_size; y++)
-    {
-        std::cout << y << ": " << vector[y] << " " << std::endl;
-    }
-
     // solve LS system
-    // gauss_solve(matrix, vector, matrix_size);
+    gauss_solve(matrix, state_vector, vector_size);
 
-    // inverse_matrix(matrix, matrix_size);
-
-    // print vector
-    for (size_t y = 0; y < vector_size; y++)
+    // print state_vector
+    if (print)
     {
-        std::cout << y << ": " << vector[y] << " " << std::endl;
+        std::cout << "---State Values---" << std::endl;
+        for (size_t y = 0; y < vector_size; y++)
+        {
+            std::cout << y << ": " << state_vector[y] << " " << std::endl;
+        }
     }
 }
 
-template <typename T, unsigned int width, unsigned int height>
-auto RLManager<T, width, height>::solve() -> void;
-
-template <typename T, unsigned int width, unsigned int height>
-auto RLManager<T, width, height>::MDP_action_value_function() -> void
+auto RLManager::calc_action_values(Entity *curr_entity, RLComponent *const (&comp)[4], Entity *const (&neighbors)[4]) -> void
 {
+    auto curr_component = curr_entity->get_component<RLComponent>();
+    auto curr_state_state_number = curr_component->state_number;
 
-    // if (width <= 1 && height <= 1)
-    //     return;
+    if (curr_component->type == CELL_TYPE::GOAL || curr_component->type == CELL_TYPE::WALL || curr_component->type == CELL_TYPE::NONO) [[unlikley]]
+    {
+        return;
+    }
 
-    // for (size_t x = 0; x < height; x++)
-    // {
-    //     for (size_t y = 0; y < width; y++)
-    //     {
-    //         auto is_up_possible = MDP_check_action_validity(POLICY::UP, x, y);
-    //         auto is_right_possible = MDP_check_action_validity(POLICY::RIGHT, x, y);
-    //         auto is_down_possible = MDP_check_action_validity(POLICY::DOWN, x, y);
-    //         auto is_left_possible = MDP_check_action_validity(POLICY::LEFT, x, y);
-    //     }
-    // }
+    for (int i = 0; i < 4; i++)
+    {
+        if (neighbors[i] == nullptr)
+            value_matrix[curr_state_state_number * 4 + i] += curr_component->reward + (discount * state_vector[curr_state_state_number]);
+        else
+        {
+            auto neighbor_component = neighbors[i]->get_component<RLComponent>();
+            auto neighbor_state_number = neighbor_component->state_number;
+
+            value_matrix[curr_state_state_number * 4 + i] += neighbor_component->reward + (discount * state_vector[neighbor_state_number]);
+        }
+    }
 }
 
-template <typename T, unsigned int width, unsigned int height>
-auto RLManager<T, width, height>::get_neighbor(POLICY::POLICY action, int x, int y) -> Entity *
+auto RLManager::MDP_action_value_function(bool print) -> void
+{
+    if (width <= 1 && height <= 1)
+        return;
+
+    for (size_t x = 0; x < height; x++)
+    {
+        for (size_t y = 0; y < width; y++)
+        {
+            auto is_up_possible = MDP_check_action_validity(POLICY::UP, x, y);
+            auto is_right_possible = MDP_check_action_validity(POLICY::RIGHT, x, y);
+            auto is_down_possible = MDP_check_action_validity(POLICY::DOWN, x, y);
+            auto is_left_possible = MDP_check_action_validity(POLICY::LEFT, x, y);
+
+            Entity *up = nullptr;
+            Entity *right = nullptr;
+            Entity *down = nullptr;
+            Entity *left = nullptr;
+
+            RLComponent *up_comp = nullptr;
+            RLComponent *right_comp = nullptr;
+            RLComponent *down_comp = nullptr;
+            RLComponent *left_comp = nullptr;
+
+            if (is_up_possible)
+            {
+                up = get_neighbor(POLICY::UP, x, y);
+                up_comp = up->get_component<RLComponent>();
+            }
+
+            if (is_right_possible)
+            {
+                right = get_neighbor(POLICY::RIGHT, x, y);
+                right_comp = right->get_component<RLComponent>();
+            }
+
+            if (is_down_possible)
+            {
+                down = get_neighbor(POLICY::DOWN, x, y);
+                down_comp = down->get_component<RLComponent>();
+            }
+
+            if (is_left_possible)
+            {
+                left = get_neighbor(POLICY::LEFT, x, y);
+                left_comp = left->get_component<RLComponent>();
+            }
+
+            Entity *const entity_array[4] = {up, right, down, left};
+            RLComponent *entity_comp_array[4] = {up_comp, right_comp, down_comp, left_comp};
+
+            auto proxy_entity = grid[width * x + y];
+
+            // populate matrix and state_vector
+            calc_action_values(proxy_entity, entity_comp_array, entity_array);
+        }
+    }
+
+    if (print)
+    {
+        std::cout << "---Action Values---" << std::endl;
+        std::cout << "States\t"
+                  << "UP\t"
+                  << "RIGHT\t"
+                  << "DOWN\t"
+                  << "LEFT" << std::endl;
+        for (size_t i = 0; i < vector_size; i++)
+        {
+            std::cout << i << "\t";
+            for (size_t j = 0; j < 4; j++)
+            {
+                std::cout << value_matrix[i * 4 + j] << "\t";
+            }
+            std::cout << std::endl;
+        }
+    }
+}
+
+auto RLManager::get_neighbor(POLICY::POLICY action, int x, int y) -> Entity *
 {
     switch (action)
     {
@@ -317,8 +376,7 @@ auto RLManager<T, width, height>::get_neighbor(POLICY::POLICY action, int x, int
     }
 }
 
-template <typename T, unsigned int width, unsigned int height>
-auto RLManager<T, width, height>::MDP_check_action_validity(POLICY::POLICY action, int x, int y) -> const bool
+auto RLManager::MDP_check_action_validity(POLICY::POLICY action, int x, int y) -> const bool
 {
     bool value = false;
     switch (action)
@@ -384,8 +442,7 @@ auto RLManager<T, width, height>::MDP_check_action_validity(POLICY::POLICY actio
     return value;
 }
 
-template <typename T, unsigned int width, unsigned int height>
-auto RLManager<T, width, height>::MDP_are_any_goals_reachable(Entity *const (&entities)[4]) -> const POLICY::POLICY
+auto RLManager::MDP_are_any_goals_reachable(Entity *const (&entities)[4]) -> const POLICY::POLICY
 {
     for (size_t i = 0; i < 4; i++)
     {

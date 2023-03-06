@@ -4,12 +4,12 @@
 #include <Components/TransformComponent.hpp>
 #include <Engine.hpp>
 #include <Game.hpp>
-#include <RLManager.tpp>
+#include <RLManager.hpp>
 
 EntityManager manager;
 AssetManager *Game::asset_manager = new AssetManager(manager);
 SDL_Renderer *Game::renderer;
-RLManager<float,2,2> *rl_manager;
+RLManager *rl_manager;
 
 [[nodiscard]] bool Game::is_running() const
 {
@@ -57,14 +57,28 @@ void Game::load_level([[maybe_unused]] int level_number) const
     asset_manager->add_texture("wall", "../assets/sprites/wall.png");
 
     std::string_view level;
+    TimePoint bench_time;
+    int bench_iterations = 1'000'000;
 
     switch (level_number)
     {
     case 0:
-        level = "0 g 0 0";
+        level = "0 0 0 g 0 w 0 t s 0 0 0";
 
-        rl_manager = new RLManager<float, 2, 2>(manager, level);
-        rl_manager->MDP_state_value_function();
+        rl_manager = new RLManager(manager, 4, 3, level);
+        rl_manager->MDP_state_value_function(true);
+        rl_manager->MDP_action_value_function(true);
+
+        // bench_time = std::chrono::high_resolution_clock::now();
+
+        // for (size_t i = 0; i < bench_iterations; i++)
+        // {
+        //     rl_manager->MDP_state_value_function();
+        //     rl_manager->MDP_action_value_function();
+        // }
+
+        // std::cout << bench_iterations << " iterations done in: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - bench_time).count() << "ms" << std::endl;
+
         break;
 
     default:
