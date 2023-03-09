@@ -9,6 +9,8 @@
 RLManager::RLManager(EntityManager &manager, size_t width, size_t height, std::string_view &level)
     : manager(manager), width(width), height(height)
 {
+    assert(width > 0 && height > 0);
+
     auto entity_opt = new char[width * height];
 
     {
@@ -30,6 +32,8 @@ RLManager::RLManager(EntityManager &manager, size_t width, size_t height, std::s
 
     // scale bloack size to fit screen
     size_t block_size = std::min(Engine::width / width, Engine::height / height);
+
+    size_t num_states = 0;
 
     for (size_t y = 0; y < height; y++)
     {
@@ -56,7 +60,7 @@ RLManager::RLManager(EntityManager &manager, size_t width, size_t height, std::s
             case 'g':
                 type = CELL_TYPE::GOAL;
                 texture_id = "goal";
-                reward = 5;
+                reward = 1;
                 break;
             case 't':
                 type = CELL_TYPE::NONO;
@@ -92,6 +96,7 @@ RLManager::RLManager(EntityManager &manager, size_t width, size_t height, std::s
     }
 
     state_vector = new double[vector_size];
+    std::cout << "State Vector Size: " << vector_size << std::endl;
     for (size_t i = 0; i < vector_size; i++)
     {
         state_vector[i] = 0;
@@ -154,11 +159,6 @@ auto RLManager::populate_LS_system(Entity *curr_entity, RLComponent *const (&com
     auto curr_component = curr_entity->get_component<RLComponent>();
     auto curr_state_state_number = curr_component->state_number;
 
-    if (curr_component->type == CELL_TYPE::GOAL || curr_component->type == CELL_TYPE::WALL || curr_component->type == CELL_TYPE::NONO) [[unlikley]]
-    {
-        return;
-    }
-
     double curr_element_value = 0;
 
     for (int i = 0; i < 4; i++)
@@ -190,6 +190,15 @@ auto RLManager::MDP_state_value_function(bool print) -> void
     {
         for (size_t y = 0; y < width; y++)
         {
+            auto proxy_entity = grid[width * x + y];
+
+            auto curr_component = proxy_entity->get_component<RLComponent>();
+
+            if (curr_component->type == CELL_TYPE::GOAL || curr_component->type == CELL_TYPE::WALL || curr_component->type == CELL_TYPE::NONO) [[unlikley]]
+            {
+                continue;
+            }
+
             auto is_up_possible = MDP_check_action_validity(POLICY::UP, x, y);
             auto is_right_possible = MDP_check_action_validity(POLICY::RIGHT, x, y);
             auto is_down_possible = MDP_check_action_validity(POLICY::DOWN, x, y);
@@ -231,8 +240,6 @@ auto RLManager::MDP_state_value_function(bool print) -> void
 
             Entity *const entity_array[4] = {up, right, down, left};
             RLComponent *entity_comp_array[4] = {up_comp, right_comp, down_comp, left_comp};
-
-            auto proxy_entity = grid[width * x + y];
 
             // populate matrix and state_vector
             populate_LS_system(proxy_entity, entity_comp_array, entity_array);
@@ -257,18 +264,13 @@ auto RLManager::calc_action_values(Entity *curr_entity, RLComponent *const (&com
     auto curr_component = curr_entity->get_component<RLComponent>();
     auto curr_state_state_number = curr_component->state_number;
 
-    if (curr_component->type == CELL_TYPE::GOAL || curr_component->type == CELL_TYPE::WALL || curr_component->type == CELL_TYPE::NONO) [[unlikley]]
-    {
-        return;
-    }
-
     for (int i = 0; i < 4; i++)
     {
         if (neighbors[i] == nullptr)
             value_matrix[curr_state_state_number * 4 + i] += curr_component->reward + (discount * state_vector[curr_state_state_number]);
         else
         {
-            auto neighbor_component = neighbors[i]->get_component<RLComponent>();
+            auto neighbor_component = comp[i];
             auto neighbor_state_number = neighbor_component->state_number;
 
             value_matrix[curr_state_state_number * 4 + i] += neighbor_component->reward + (discount * state_vector[neighbor_state_number]);
@@ -285,6 +287,15 @@ auto RLManager::MDP_action_value_function(bool print) -> void
     {
         for (size_t y = 0; y < width; y++)
         {
+            auto proxy_entity = grid[width * x + y];
+
+            auto curr_component = proxy_entity->get_component<RLComponent>();
+
+            if (curr_component->type == CELL_TYPE::GOAL || curr_component->type == CELL_TYPE::WALL || curr_component->type == CELL_TYPE::NONO) [[unlikley]]
+            {
+                continue;
+            }
+
             auto is_up_possible = MDP_check_action_validity(POLICY::UP, x, y);
             auto is_right_possible = MDP_check_action_validity(POLICY::RIGHT, x, y);
             auto is_down_possible = MDP_check_action_validity(POLICY::DOWN, x, y);
@@ -326,8 +337,6 @@ auto RLManager::MDP_action_value_function(bool print) -> void
 
             Entity *const entity_array[4] = {up, right, down, left};
             RLComponent *entity_comp_array[4] = {up_comp, right_comp, down_comp, left_comp};
-
-            auto proxy_entity = grid[width * x + y];
 
             // populate matrix and state_vector
             calc_action_values(proxy_entity, entity_comp_array, entity_array);
@@ -354,7 +363,186 @@ auto RLManager::MDP_action_value_function(bool print) -> void
     }
 }
 
-auto RLManager::get_neighbor(POLICY::POLICY action, int x, int y) -> Entity *
+auto RLManager::calc_state_values_itteratively(Entity *curr_entity, RLComponent *const (&comp)[4], Entity *const (&neighbors)[4]) -> double
+{
+    auto curr_component = curr_entity->get_component<RLComponent>();
+    auto curr_state_state_number = curr_component->state_number;
+
+    double max = 0;
+    double values[4] = {0, 0, 0, 0};
+
+    for (int i = 0; i < 4; i++)
+    {
+        if (neighbors[i] == nullptr)
+            values[i] = curr_component->reward + (state_vector[curr_state_state_number] * discount);
+        else
+        {
+            auto neighbor_component = comp[i];
+            auto neighbor_state_number = neighbor_component->state_number;
+            auto neighbor_type = neighbor_component->type;
+
+            if (neighbor_type == CELL_TYPE::GOAL || neighbor_type == CELL_TYPE::NONO)
+                values[i] = neighbor_component->reward;
+            else
+                values[i] = neighbor_component->reward + (state_vector[neighbor_state_number] * discount);
+        }
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        max = std::max(max, values[i]);
+    }
+
+    return max;
+}
+
+auto RLManager::MDP_itterative_state_value_function(double epsilon, bool print) -> void
+{
+    if (width <= 1 && height <= 1)
+        return;
+
+    while (true)
+    {
+        double error = 0;
+
+        for (size_t x = 0; x < height; x++)
+        {
+            for (size_t y = 0; y < width; y++)
+            {
+                auto proxy_entity = grid[width * x + y];
+
+                auto curr_component = proxy_entity->get_component<RLComponent>();
+
+                if (curr_component->type == CELL_TYPE::GOAL || curr_component->type == CELL_TYPE::WALL || curr_component->type == CELL_TYPE::NONO) [[unlikley]]
+                    continue;
+
+                auto is_up_possible = MDP_check_action_validity(POLICY::UP, x, y);
+                auto is_right_possible = MDP_check_action_validity(POLICY::RIGHT, x, y);
+                auto is_down_possible = MDP_check_action_validity(POLICY::DOWN, x, y);
+                auto is_left_possible = MDP_check_action_validity(POLICY::LEFT, x, y);
+
+                Entity *up = nullptr;
+                Entity *right = nullptr;
+                Entity *down = nullptr;
+                Entity *left = nullptr;
+
+                RLComponent *up_comp = nullptr;
+                RLComponent *right_comp = nullptr;
+                RLComponent *down_comp = nullptr;
+                RLComponent *left_comp = nullptr;
+
+                if (is_up_possible)
+                {
+                    up = get_neighbor(POLICY::UP, x, y);
+                    up_comp = up->get_component<RLComponent>();
+                }
+
+                if (is_right_possible)
+                {
+                    right = get_neighbor(POLICY::RIGHT, x, y);
+                    right_comp = right->get_component<RLComponent>();
+                }
+
+                if (is_down_possible)
+                {
+                    down = get_neighbor(POLICY::DOWN, x, y);
+                    down_comp = down->get_component<RLComponent>();
+                }
+
+                if (is_left_possible)
+                {
+                    left = get_neighbor(POLICY::LEFT, x, y);
+                    left_comp = left->get_component<RLComponent>();
+                }
+
+                Entity *const entity_array[4] = {up, right, down, left};
+                RLComponent *entity_comp_array[4] = {up_comp, right_comp, down_comp, left_comp};
+
+                // populate matrix and state_vector
+                auto state_val = calc_state_values_itteratively(proxy_entity, entity_comp_array, entity_array);
+
+                error = std::max(error, std::abs(state_vector[curr_component->state_number] - state_val));
+
+                state_vector[curr_component->state_number] = state_val;
+            }
+        }
+
+        if (error < epsilon)
+            break;
+    }
+
+    if (print)
+    {
+        std::cout << "---State Value Function---" << std::endl;
+
+        std::cout << "States\t"
+                  << "Value Fucntion" << std::endl;
+
+        for (size_t i = 0; i < vector_size; i++)
+        {
+            std::cout << i << "\t";
+            std::cout << state_vector[i] << std::endl;
+        }
+    }
+}
+
+auto RLManager::MDP_optimal_policy(bool print, bool update) -> void
+{
+    MDP_action_value_function(print);
+
+    if (update)
+    {
+        for (size_t x = 0; x < height; x++)
+        {
+            for (size_t y = 0; y < width; y++)
+            {
+                auto entity = grid[width * x + y];
+
+                auto curr_component = entity->get_component<RLComponent>();
+                auto curr_sprite = entity->get_component<SpriteComponent>();
+
+                if (curr_component->type == CELL_TYPE::GOAL || curr_component->type == CELL_TYPE::WALL || curr_component->type == CELL_TYPE::NONO) [[unlikley]]
+                    continue;
+
+                int direction = 0;
+                double max = -std::numeric_limits<double>::infinity();
+
+                for (size_t i = 0; i < 4; i++)
+                {
+                    auto val = value_matrix[curr_component->state_number * 4 + i];
+
+                    if (val > max)
+                    {
+                        max = value_matrix[curr_component->state_number * 4 + i];
+                        direction = i;
+                    }
+                }
+
+                curr_component->policy = static_cast<POLICY::POLICY>(direction);
+
+                switch (curr_component->policy)
+                {
+                case POLICY::UP:
+                    curr_sprite->set_texture("up");
+                    break;
+                case POLICY::RIGHT:
+                    curr_sprite->set_texture("right");
+                    break;
+                case POLICY::DOWN:
+                    curr_sprite->set_texture("down");
+                    break;
+                case POLICY::LEFT:
+                    curr_sprite->set_texture("left");
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+    }
+}
+
+auto RLManager::get_neighbor(POLICY::POLICY action, size_t x, size_t y) -> Entity *
 {
     switch (action)
     {
@@ -376,7 +564,7 @@ auto RLManager::get_neighbor(POLICY::POLICY action, int x, int y) -> Entity *
     }
 }
 
-auto RLManager::MDP_check_action_validity(POLICY::POLICY action, int x, int y) -> const bool
+auto RLManager::MDP_check_action_validity(POLICY::POLICY action, size_t x, size_t y) -> const bool
 {
     bool value = false;
     switch (action)

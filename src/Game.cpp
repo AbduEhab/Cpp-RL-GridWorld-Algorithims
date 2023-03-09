@@ -36,7 +36,7 @@ void Game::init(int width, int height) // init SDL
         return;
     }
 
-    load_level(0);
+    load_level(1);
 
     running = true;
 }
@@ -63,22 +63,37 @@ void Game::load_level([[maybe_unused]] int level_number) const
     switch (level_number)
     {
     case 0:
-        level = "0 0 0 g 0 w 0 t s 0 0 0";
-
+        level = "0 0 0 g 0 w 0 t 0 0 0 0";
         rl_manager = new RLManager(manager, 4, 3, level);
         rl_manager->MDP_state_value_function(true);
-        rl_manager->MDP_action_value_function(true);
+        rl_manager->MDP_optimal_policy(true);
 
-        // bench_time = std::chrono::high_resolution_clock::now();
+        bench_time = std::chrono::high_resolution_clock::now();
 
-        // for (size_t i = 0; i < bench_iterations; i++)
-        // {
-        //     rl_manager->MDP_state_value_function();
-        //     rl_manager->MDP_action_value_function();
-        // }
+        for (size_t i = 0; i < bench_iterations; i++)
+        {
+            rl_manager->MDP_state_value_function();
+            rl_manager->MDP_optimal_policy(false, false);
+        }
 
-        // std::cout << bench_iterations << " iterations done in: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - bench_time).count() << "ms" << std::endl;
+        std::cout << bench_iterations << " iterations done in: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - bench_time).count() << "ms" << std::endl;
 
+        break;
+    case 1:
+        level = "0 0 0 g 0 w 0 t 0 0 0 0";
+        rl_manager = new RLManager(manager, 4, 3, level);
+        rl_manager->MDP_itterative_state_value_function(1e-9, true);
+        rl_manager->MDP_optimal_policy(true);
+
+        bench_time = std::chrono::high_resolution_clock::now();
+
+        for (size_t i = 0; i < bench_iterations; i++)
+        {
+            rl_manager->MDP_itterative_state_value_function(0.5, false);
+            rl_manager->MDP_optimal_policy(false, false);
+        }
+
+        std::cout << bench_iterations << " iterations done in: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - bench_time).count() << "ms" << std::endl;
         break;
 
     default:
