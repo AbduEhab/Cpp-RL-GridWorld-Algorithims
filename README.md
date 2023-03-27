@@ -14,4 +14,4 @@ You can use https://ui.perfetto.dev/ to view the profiling data. The data is sto
 
 ### Output Figures
 ![GUI Output](https://github.com/AbduEhab/Cpp-RL-GridWorld-Algorithims/blob/main/figures/GUI_output.png)
-![Terminal Output](https://github.com/AbduEhab/Cpp-RL-GridWorld-Algorithims/tree/main/figures/term_output.png)
+![Terminal Output](https://github.com/AbduEhab/Cpp-RL-GridWorld-Algorithims/blob/main/figures/term_output.png)
