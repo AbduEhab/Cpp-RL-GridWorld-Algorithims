@@ -2,7 +2,7 @@
 
 Just enable the required features from the `CMakeLists` (@line 105) and it'll add all the required submodules and linker tags and even copy the DLLs to the binary directory on windows!
 
-> Now works in `Release` or `RelWithDebInfo` modes!
+> Now works in `Release` _and_ `RelWithDebInfo` modes!
 
 ## Requirements (for compiling)
 - [CMake](https://cmake.org/)
