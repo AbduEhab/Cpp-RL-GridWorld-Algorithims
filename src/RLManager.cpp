@@ -356,7 +356,7 @@ auto RLManager::MDP_action_value_function(bool print) -> void
             std::cout << i << "\t";
             for (size_t j = 0; j < 4; j++)
             {
-                std::cout << value_matrix[i * 4 + j] << "\t";
+                std::cout << std::to_string(value_matrix[i * 4 + j]).substr(0, 7) << "\t";
             }
             std::cout << std::endl;
         }
@@ -481,7 +481,7 @@ auto RLManager::MDP_itterative_state_value_function(double epsilon, bool print) 
         for (size_t i = 0; i < vector_size; i++)
         {
             std::cout << i << "\t";
-            std::cout << state_vector[i] << std::endl;
+            std::cout << std::to_string(state_vector[i]).substr(0, 7) << std::endl;
         }
     }
 }

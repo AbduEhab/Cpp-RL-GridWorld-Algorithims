@@ -36,7 +36,7 @@ void Game::init(int width, int height) // init SDL
         return;
     }
 
-    load_level(1);
+    load_level(0);
 
     running = true;
 }
